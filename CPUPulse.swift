@@ -200,8 +200,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = image
             button.imagePosition = .imageOnly
             let state = pressure >= 4 ? "critical" : (pressure >= 2 ? "warning" : "normal")
-            button.toolTip = String(format: "CPU %.0f%% (white)  •  Memory %.0f%% — pressure %@",
-                                    cpu * 100, mem * 100, state)
+            let memDot = pressure >= 4 ? "🔴" : (pressure >= 2 ? "🟡" : "🟢")
+            button.toolTip = String(format: "⚪ CPU %.0f%%     %@ Memory %.0f%% (%@)",
+                                    cpu * 100, memDot, mem * 100, state)
         }
     }
 
@@ -235,13 +236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Interaction
 
     @objc private func statusClicked(_ sender: NSStatusBarButton) {
-        let event = NSApp.currentEvent
-        if event?.type == .rightMouseUp ||
-            (event?.modifierFlags.contains(.control) ?? false) {
-            showMenu()
-        } else {
-            openActivityMonitor()
-        }
+        showMenu()
     }
 
     private func openActivityMonitor() {
@@ -253,6 +248,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
+
+        // Live values with the same legend dots as the tooltip.
+        let cpu = cpuHistory.last ?? 0
+        let mem = memHistory.last ?? 0
+        let pressure = memSampler.pressureLevel()
+        let memDot = pressure >= 4 ? "🔴" : (pressure >= 2 ? "🟡" : "🟢")
+        let state = pressure >= 4 ? "critical" : (pressure >= 2 ? "warning" : "normal")
+        menu.addItem(withTitle: String(format: "⚪ CPU   %.0f%%", cpu * 100),
+                     action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: String(format: "%@ Memory   %.0f%%  (%@)", memDot, mem * 100, state),
+                     action: nil, keyEquivalent: "")
+        menu.addItem(.separator())
+
+        // Peak / average over the retained history.
         func stat(_ label: String, _ hist: [Double]) -> String {
             let peak = (hist.max() ?? 0) * 100
             let avg = hist.isEmpty ? 0 : hist.reduce(0, +) / Double(hist.count) * 100
