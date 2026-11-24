@@ -1,0 +1,6 @@
+# Build artifacts
+CPUPulse.app/
+CPUPulse
+
+# macOS
+.DS_Store
